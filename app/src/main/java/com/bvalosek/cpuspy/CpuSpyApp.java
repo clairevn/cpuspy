@@ -7,28 +7,27 @@
 package com.bvalosek.cpuspy;
 
 // imports
+
+import android.app.Application;
+import android.content.SharedPreferences;
+
 import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
 
-import android.app.Application;
-import android.content.SharedPreferences;
-import android.util.Log;
-
-import com.bvalosek.cpuspy.CpuStateMonitor.CpuState;
-import com.bvalosek.cpuspy.CpuStateMonitor.CpuStateMonitorException;
-
-/** main application class */
+/**
+ * main application class
+ */
 public class CpuSpyApp extends Application {
 
     private static final String PREF_NAME = "CpuSpyPreferences";
     private static final String PREF_OFFSETS = "offsets";
 
-    /** the long-living object used to monitor the system frequency states */
+    /**
+     * the long-living object used to monitor the system frequency states
+     */
     private CpuStateMonitor stateMonitor = new CpuStateMonitor();
 
     private String kernelVersion = "";
@@ -37,18 +36,23 @@ public class CpuSpyApp extends Application {
      * On application start, load the saved offsets and stash the
      * current kernel version string
      */
-    @Override public void onCreate(){
+    @Override
+    public void onCreate() {
         super.onCreate();
         loadOffsets();
         updateKernelVersion();
     }
 
-    /** @return the kernel version string */
+    /**
+     * @return the kernel version string
+     */
     public String getKernelVersion() {
         return kernelVersion;
     }
 
-    /** @return the internal CpuStateMonitor object */
+    /**
+     * @return the internal CpuStateMonitor object
+     */
     public CpuStateMonitor getCpuStateMonitor() {
         return stateMonitor;
     }
@@ -60,7 +64,7 @@ public class CpuSpyApp extends Application {
     public void loadOffsets() {
         SharedPreferences settings = getSharedPreferences(
                 PREF_NAME, MODE_PRIVATE);
-        String prefs = settings.getString (PREF_OFFSETS, "");
+        String prefs = settings.getString(PREF_OFFSETS, "");
 
         if (prefs == null || prefs.length() < 1) {
             return;
@@ -71,8 +75,8 @@ public class CpuSpyApp extends Application {
         String[] sOffsets = prefs.split(",");
         for (String offset : sOffsets) {
             String[] parts = offset.split(" ");
-            offsets.put (Integer.parseInt(parts[0]),
-                         Long.parseLong(parts[1]));
+            offsets.put(Integer.parseInt(parts[0]),
+                    Long.parseLong(parts[1]));
         }
 
         stateMonitor.setOffsets(offsets);
@@ -98,7 +102,9 @@ public class CpuSpyApp extends Application {
         editor.commit();
     }
 
-    /** Try to read the kernel version string from the proc fileystem */
+    /**
+     * Try to read the kernel version string from the proc fileystem
+     */
     public void updateKernelVersion() {
         try {
             Process p = Runtime.getRuntime().exec("uname -a");

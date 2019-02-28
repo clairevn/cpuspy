@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">CPU Spy</string>
-    <string name="version_name">dev</string>
+    <string name="version_name">1.0</string>
+    <string name="no_states_file_found">No states file found. Are you sure your phone is compatible?  If you are running a custom ROM or kernel, try contacting its developer to inform him that the states file is not readable.</string>
+    <string name="time_in_state">Time In State</string>
+    <string name="unused_cpu_states">Unused CPU states</string>
+    <string name="total_state_time">Total State Time</string>
+    <string name="kernel_info">Kernel Info</string>
+    <string name="kernel">Kernel</string>
+    <string name="refresh">Refresh</string>
+    <string name="reset_timers">Reset Timers</string>
+    <string name="restore_timers">Restore Timers</string>
 </resources>

@@ -1,61 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/ui_state_row"
-    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    >
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/ui_freq_text"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:layout_marginEnd="5dp"
+        android:layout_marginRight="5dp"
+        android:layout_weight="1"
+        android:textSize="17sp" />
 
     <LinearLayout
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:orientation="horizontal"
-        >
+        android:weightSum="1">
 
-        <TextView
-            android:id="@+id/ui_freq_text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="17dp"
-            android:textColor="#ffffff"
-            android:layout_weight="1"
-            android:layout_marginRight="5dp"
-            />
+    <TextView
+        android:id="@+id/ui_duration_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="5dp"
+        android:layout_marginRight="5dp"
+        android:layout_weight="0.5" />
 
-        <TextView
-            android:id="@+id/ui_duration_text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:gravity="right"
-            android:layout_weight="1"
-            android:layout_marginRight="5dp"
-            />
-
-        <TextView
-            android:id="@+id/ui_percentage_text"
-            android:layout_width="70dp"
-            android:layout_height="wrap_content"
-            android:gravity="right"
-            android:layout_weight="0"
-            android:layout_marginRight="5dp"
-            />
+    <TextView
+        android:id="@+id/ui_percentage_text"
+        android:layout_width="70dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="5dp"
+        android:layout_marginRight="5dp"
+        android:layout_weight="0.5"/>
 
     </LinearLayout>
 
     <ProgressBar
         android:id="@+id/ui_bar"
-        android:layout_width="fill_parent"
-        android:layout_height="10dp"
         style="?android:attr/progressBarStyleHorizontal"
-        android:max="100"
-        />
+        android:layout_width="match_parent"
+        android:layout_height="10dp"
+        android:max="100" />
 
     <LinearLayout
-        android:layout_width="fill_parent"
+        android:layout_width="match_parent"
         android:layout_height="1px"
         android:layout_marginTop="5dp"
-        android:background="#444"
-        />
+        android:background="#444" />
 
 </LinearLayout>

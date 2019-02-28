@@ -10,6 +10,7 @@ package com.bvalosek.cpuspy;
 
 import android.app.Application;
 import android.content.SharedPreferences;
+import android.util.ArrayMap;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -71,7 +72,7 @@ public class CpuSpyApp extends Application {
         }
 
         // split the string by peroids and then the info by commas and load
-        Map<Integer, Long> offsets = new HashMap<>();
+        Map<Integer, Long> offsets = new ArrayMap<>();
         String[] sOffsets = prefs.split(",");
         for (String offset : sOffsets) {
             String[] parts = offset.split(" ");
@@ -92,14 +93,14 @@ public class CpuSpyApp extends Application {
         SharedPreferences.Editor editor = settings.edit();
 
         // build the string by iterating over the freq->duration map
-        String str = "";
+        StringBuilder prefOffsetsBuilder = new StringBuilder();
         for (Map.Entry<Integer, Long> entry :
                 stateMonitor.getOffsets().entrySet()) {
-            str += entry.getKey() + " " + entry.getValue() + ",";
+            prefOffsetsBuilder.append(entry.getKey()).append(" ").append(entry.getValue()).append(",");
         }
 
-        editor.putString(PREF_OFFSETS, str);
-        editor.commit();
+        editor.putString(PREF_OFFSETS, prefOffsetsBuilder.toString());
+        editor.apply();
     }
 
     /**

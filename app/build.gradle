@@ -1,16 +1,27 @@
 apply plugin: 'com.android.application'
 android {
+    signingConfigs {
+        config {
+            keyAlias 'key0'
+            keyPassword '23111987'
+            storeFile file('/home/tung/Android/Keystore/keystore.jks')
+            storePassword '23111987'
+        }
+    }
     compileSdkVersion 28
     buildToolsVersion "28.0.3"
     defaultConfig {
         applicationId "com.bvalosek.cpuspy"
-        minSdkVersion 28
         targetSdkVersion 28
+        minSdkVersion 28
     }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
+            signingConfig signingConfigs.config
         }
     }
+}
+dependencies {
 }

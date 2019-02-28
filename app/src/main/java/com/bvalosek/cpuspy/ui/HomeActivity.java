@@ -28,10 +28,11 @@ import com.bvalosek.cpuspy.CpuStateMonitor.CpuState;
 import com.bvalosek.cpuspy.CpuStateMonitor.CpuStateMonitorException;
 import com.bvalosek.cpuspy.R;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
+/*
  * main activity class
  */
 public class HomeActivity extends Activity {
@@ -48,12 +49,12 @@ public class HomeActivity extends Activity {
     private TextView uiStatesWarning = null;
     private TextView uiKernelString = null;
 
-    /**
+    /*
      * whether or not we're updating the data in the background
      */
     private boolean updatingData = false;
 
-    /**
+    /*
      * Initialize the Activity
      */
     @Override
@@ -75,7 +76,7 @@ public class HomeActivity extends Activity {
         }
     }
 
-    /**
+    /*
      * When the activity is about to change orientation
      */
     @Override
@@ -85,7 +86,7 @@ public class HomeActivity extends Activity {
     }
 
 
-    /**
+    /*
      * Update the view when the application regains focus
      */
     @Override
@@ -94,7 +95,7 @@ public class HomeActivity extends Activity {
         refreshData();
     }
 
-    /**
+    /*
      * Map all of the UI elements to member variables
      */
     private void findViews() {
@@ -110,8 +111,8 @@ public class HomeActivity extends Activity {
         uiTotalStateTime = findViewById(R.id.ui_total_state_time);
     }
 
-    /**
-     * called when we want to infalte the menu
+    /*
+     * called when we want to inflate the menu
      */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -123,7 +124,7 @@ public class HomeActivity extends Activity {
         return true;
     }
 
-    /**
+    /*
      * called to handle a menu event
      */
     @Override
@@ -138,7 +139,7 @@ public class HomeActivity extends Activity {
                 try {
                     app.getCpuStateMonitor().setOffsets();
                 } catch (CpuStateMonitorException e) {
-                    // TODO: something
+                    log(e.toString());
                 }
 
                 app.saveOffsets();
@@ -155,7 +156,7 @@ public class HomeActivity extends Activity {
         return true;
     }
 
-    /**
+    /*
      * Generate and update all UI elements
      */
     public void updateView() {
@@ -164,7 +165,7 @@ public class HomeActivity extends Activity {
          * extraStates (missing) */
         CpuStateMonitor monitor = app.getCpuStateMonitor();
         uiStatesView.removeAllViews();
-        List<String> extraStates = new ArrayList<String>();
+        List<String> extraStates = new ArrayList<>();
         for (CpuState state : monitor.getStates()) {
             if (state.duration > 0) {
                 generateStateRow(state, uiStatesView);
@@ -187,22 +188,22 @@ public class HomeActivity extends Activity {
 
         // update the total state time
         long totTime = monitor.getTotalStateTime() / 100;
-        uiTotalStateTime.setText(sToString(totTime));
+        uiTotalStateTime.setText(longToString(totTime));
 
         // for all the 0 duration states, add the the Unused State area
         if (extraStates.size() > 0) {
             int n = 0;
-            String str = "";
+            StringBuilder additionStatesBuilder = new StringBuilder();
 
             for (String s : extraStates) {
                 if (n++ > 0)
-                    str += ", ";
-                str += s;
+                    additionStatesBuilder.append(", ");
+                additionStatesBuilder.append(s);
             }
 
             uiAdditionalStates.setVisibility(View.VISIBLE);
             uiHeaderAdditionalStates.setVisibility(View.VISIBLE);
-            uiAdditionalStates.setText(str);
+            uiAdditionalStates.setText(additionStatesBuilder.toString());
         } else {
             uiAdditionalStates.setVisibility(View.GONE);
             uiHeaderAdditionalStates.setVisibility(View.GONE);
@@ -212,21 +213,35 @@ public class HomeActivity extends Activity {
         uiKernelString.setText(app.getKernelVersion());
     }
 
-    /**
+    /*
      * Attempt to update the time-in-state info
      */
     public void refreshData() {
         if (!updatingData) {
-            new RefreshStateDataTask().execute((Void) null);
+            new RefreshStateDataTask(this).execute((Void) null);
         }
     }
 
-    /**
+    /*
+     * Flag updating in progress
+     */
+    public void setUpdating(boolean updating) {
+        updatingData = updating;
+    }
+
+    /*
+     * Getcpu app inside
+     */
+    public CpuSpyApp getApp() {
+        return this.app;
+    }
+
+    /*
      * @return A nicely formatted String representing tSec seconds
      */
-    private static String sToString(long tSec) {
-        long h = (long) Math.floor(tSec / (60 * 60));
-        long m = (long) Math.floor((tSec - h * 60 * 60) / 60);
+    private static String longToString(long tSec) {
+        long h = (long) Math.floor((float) tSec / (60 * 60));
+        long m = (long) Math.floor(((float) tSec - h * 60 * 60) / 60);
         long s = tSec % 60;
         String sDur;
         sDur = h + ":";
@@ -240,7 +255,7 @@ public class HomeActivity extends Activity {
         return sDur;
     }
 
-    /**
+    /*
      * generate a View that corresponds to a CPU freq state row as specified
      * by the state parameter
      */
@@ -266,7 +281,7 @@ public class HomeActivity extends Activity {
 
         // duration
         long tSec = state.duration / 100;
-        String sDur = sToString(tSec);
+        String sDur = longToString(tSec);
 
         // map UI elements to objects
         TextView freqText = theRow.findViewById(R.id.ui_freq_text);
@@ -286,17 +301,23 @@ public class HomeActivity extends Activity {
         parent.addView(theRow);
     }
 
-    /**
+    /*
      * Keep updating the state data off the UI thread for slow devices
      */
-    protected class RefreshStateDataTask extends AsyncTask<Void, Void, Void> {
+    protected static class RefreshStateDataTask extends AsyncTask<Void, Void, Void> {
 
-        /**
+        private static WeakReference<HomeActivity> activityRef;
+
+        RefreshStateDataTask(HomeActivity context) {
+            activityRef = new WeakReference<>(context);
+        }
+
+        /*
          * Stuff to do on a seperate thread
          */
         @Override
         protected Void doInBackground(Void... v) {
-            CpuStateMonitor monitor = app.getCpuStateMonitor();
+            CpuStateMonitor monitor = activityRef.get().getApp().getCpuStateMonitor();
             try {
                 monitor.updateStates();
             } catch (CpuStateMonitorException e) {
@@ -306,30 +327,28 @@ public class HomeActivity extends Activity {
             return null;
         }
 
-        /**
+        /*
          * Executed on the UI thread right before starting the task
          */
         @Override
         protected void onPreExecute() {
-            log("starting data update");
-            updatingData = true;
+            activityRef.get().setUpdating(true);
         }
 
-        /**
+        /*
          * Executed on UI thread after task
          */
         @Override
         protected void onPostExecute(Void v) {
-            log("finished data update");
-            updatingData = false;
-            updateView();
+            activityRef.get().setUpdating(false);
+            activityRef.get().updateView();
         }
     }
 
-    /**
+    /*
      * logging
      */
     private void log(String s) {
-        Log.d(TAG, s);
+        ;
     }
 }

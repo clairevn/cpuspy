@@ -9,6 +9,7 @@ package com.bvalosek.cpuspy;
 // imports
 
 import android.os.SystemClock;
+import android.util.ArrayMap;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -33,8 +34,8 @@ public class CpuStateMonitor {
 
     private static final String TAG = "CpuStateMonitor";
 
-    private List<CpuState> states = new ArrayList<CpuState>();
-    private Map<Integer, Long> offset = new HashMap<Integer, Long>();
+    private List<CpuState> states = new ArrayList<>();
+    private Map<Integer, Long> offset = new ArrayMap<>();
 
     /**
      * exception class
@@ -80,7 +81,8 @@ public class CpuStateMonitor {
          * from the duration, otherwise just add it to the return List */
         for (CpuState state : this.states) {
             long duration = state.duration;
-            if (offset.containsKey(state.freq)) {
+            if (this.offset.containsKey(state.freq)) {
+                //noinspection ConstantConditions
                 long offset = this.offset.get(state.freq);
                 if (offset <= duration) {
                     duration -= offset;

@@ -1,12 +1,12 @@
-//-----------------------------------------------------------------------------
-//
-// (C) Brandon Valosek, 2011 <bvalosek@gmail.com>
-//
-//-----------------------------------------------------------------------------
+/*
+  -----------------------------------------------------------------------------
+
+  (C) Brandon Valosek, 2011 <bvalosek@gmail.com>
+
+  -----------------------------------------------------------------------------
+ */
 
 package com.bvalosek.cpuspy;
-
-// imports
 
 import android.app.Application;
 import android.content.SharedPreferences;
@@ -15,19 +15,15 @@ import android.util.ArrayMap;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.HashMap;
 import java.util.Map;
 
-/**
- * main application class
- */
 public class CpuSpyApp extends Application {
 
     private static final String PREF_NAME = "CpuSpyPreferences";
     private static final String PREF_OFFSETS = "offsets";
 
     /**
-     * the long-living object used to monitor the system frequency states
+     * The long-living object used to monitor the system frequency states
      */
     private CpuStateMonitor stateMonitor = new CpuStateMonitor();
 
@@ -88,15 +84,15 @@ public class CpuSpyApp extends Application {
      * e.g. "100 24, 200 251, 500 124 etc
      */
     public void saveOffsets() {
-        SharedPreferences settings = getSharedPreferences(
-                PREF_NAME, MODE_PRIVATE);
+        SharedPreferences settings = getSharedPreferences(PREF_NAME, MODE_PRIVATE);
         SharedPreferences.Editor editor = settings.edit();
 
-        // build the string by iterating over the freq->duration map
         StringBuilder prefOffsetsBuilder = new StringBuilder();
-        for (Map.Entry<Integer, Long> entry :
-                stateMonitor.getOffsets().entrySet()) {
-            prefOffsetsBuilder.append(entry.getKey()).append(" ").append(entry.getValue()).append(",");
+        for (Map.Entry<Integer, Long> entry : stateMonitor.getOffsets().entrySet()) {
+            prefOffsetsBuilder.append(entry.getKey()).
+                    append(" ").
+                    append(entry.getValue()).
+                    append(",");
         }
 
         editor.putString(PREF_OFFSETS, prefOffsetsBuilder.toString());
@@ -109,15 +105,15 @@ public class CpuSpyApp extends Application {
     public void updateKernelVersion() {
         try {
             Process p = Runtime.getRuntime().exec("uname -a");
-            InputStream is;
+            InputStream programOutput;
             if (p.waitFor() == 0) {
-                is = p.getInputStream();
+                programOutput = p.getInputStream();
             } else {
-                is = p.getErrorStream();
+                programOutput = p.getErrorStream();
             }
-            BufferedReader br = new BufferedReader(new InputStreamReader(is));
-            kernelVersion = br.readLine();
-            br.close();
+            BufferedReader programOutputReader = new BufferedReader(new InputStreamReader(programOutput));
+            kernelVersion = programOutputReader.readLine();
+            programOutputReader.close();
         } catch (Exception ex) {
             kernelVersion = "ERROR: " + ex.getMessage();
         }

@@ -1,12 +1,12 @@
-//-----------------------------------------------------------------------------
-//
-// (C) Brandon Valosek, 2011 <bvalosek@gmail.com>
-//
-//-----------------------------------------------------------------------------
+/*
+  -----------------------------------------------------------------------------
+
+  (C) Brandon Valosek, 2011 <bvalosek@gmail.com>
+
+  -----------------------------------------------------------------------------
+ */
 
 package com.bvalosek.cpuspy;
-
-// imports
 
 import android.os.SystemClock;
 import android.util.ArrayMap;
@@ -18,7 +18,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 

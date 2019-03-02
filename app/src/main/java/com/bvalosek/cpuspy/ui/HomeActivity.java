@@ -18,28 +18,33 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.Spinner;
 import android.widget.TextView;
 
 import com.bvalosek.cpuspy.CpuSpyApp;
-import com.bvalosek.cpuspy.CpuStateMonitor;
-import com.bvalosek.cpuspy.CpuStateMonitor.CpuState;
-import com.bvalosek.cpuspy.CpuStateMonitor.CpuStateMonitorException;
+import com.bvalosek.cpuspy.CpuTimeInStateMonitor;
+import com.bvalosek.cpuspy.CpuTimeInStateMonitor.CpuStateMonitorException;
+import com.bvalosek.cpuspy.CpuTimeInStateMonitor.CpuTimeInState;
 import com.bvalosek.cpuspy.R;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
-public class HomeActivity extends Activity {
-    private static final String logTag = "CpuSpy";
+public class HomeActivity extends Activity implements AdapterView.OnItemSelectedListener {
+    private static final String LOG_TAG = "CpuSpy";
 
     private CpuSpyApp app = null;
 
     /**
      * Views
      */
+    private Spinner uiCpuSelector = null;
     private LinearLayout uiStatesView = null;
     private TextView uiAdditionalStates = null;
     private TextView uiTotalStateTime = null;
@@ -53,6 +58,8 @@ public class HomeActivity extends Activity {
      */
     private boolean updatingInProgress = false;
 
+    private final String updateInProgressIndicator = "updatingInProgress";
+
     /**
      * Initialize the Activity
      */
@@ -60,18 +67,26 @@ public class HomeActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // inflate the view, stash the app context, and get all UI elements
         setContentView(R.layout.home_layout);
-        app = (CpuSpyApp) getApplicationContext();
-        findViews();
+        this.app = (CpuSpyApp) getApplicationContext();
+        populateView();
 
-        // set title to version string
-        setTitle(getResources().getText(R.string.app_name) + " v" +
-                getResources().getText(R.string.version_name));
 
-        // see if we're updating data during a config change (rotate screen)
+        List<String> cpuList = new ArrayList<>();
+        for (int i = 0; i < this.app.getCpuStateMonitor().getCpuCount(); i++) {
+            cpuList.add(String.format(Locale.getDefault(), "Core %d", i));
+        }
+        ArrayAdapter<String> adapter =
+                new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, cpuList);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        this.uiCpuSelector.setAdapter(adapter);
+        this.uiCpuSelector.setOnItemSelectedListener(this);
+
+        setTitle(getResources().getText(R.string.app_name) + " v" + getResources().getText(R.string.version_name));
+
         if (savedInstanceState != null) {
-            updatingInProgress = savedInstanceState.getBoolean("updatingInProgress");
+            this.updatingInProgress =
+                    savedInstanceState.getBoolean(this.updateInProgressIndicator);
         }
     }
 
@@ -81,7 +96,7 @@ public class HomeActivity extends Activity {
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putBoolean("updatingInProgress", updatingInProgress);
+        outState.putBoolean(this.updateInProgressIndicator, updatingInProgress);
     }
 
 
@@ -97,17 +112,26 @@ public class HomeActivity extends Activity {
     /**
      * Map all of the UI elements to member variables
      */
-    private void findViews() {
+    private void populateView() {
+        uiCpuSelector = findViewById(R.id.ui_cpu_selector);
         uiStatesView = findViewById(R.id.ui_states_view);
         uiKernelString = findViewById(R.id.ui_kernel_string);
-        uiAdditionalStates = findViewById(
-                R.id.ui_additional_states);
-        uiHeaderAdditionalStates = findViewById(
-                R.id.ui_header_additional_states);
-        uiHeaderTotalStateTime = findViewById(
-                R.id.ui_header_total_state_time);
+        uiAdditionalStates = findViewById(R.id.ui_additional_states);
+        uiHeaderAdditionalStates = findViewById(R.id.ui_header_additional_states);
+        uiHeaderTotalStateTime = findViewById(R.id.ui_header_total_state_time);
         uiStatesWarning = findViewById(R.id.ui_states_warning);
         uiTotalStateTime = findViewById(R.id.ui_total_state_time);
+    }
+
+    /**
+     * Handle cpu selector dropdown
+     */
+    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        this.app.getCpuStateMonitor().setCurrentCpu((int) id);
+        updateView();
+    }
+
+    public void onNothingSelected(AdapterView<?> parent) {
     }
 
     /**
@@ -132,17 +156,14 @@ public class HomeActivity extends Activity {
                 break;
             case R.id.menu_reset:
                 try {
-                    app.getCpuStateMonitor().setOffsets();
+                    this.app.getCpuStateMonitor().resetAllCpuIgnoredTimeInStates();
                 } catch (CpuStateMonitorException e) {
-                    log(e.toString());
+                    logError(e.toString());
                 }
-
-                app.saveOffsets();
                 updateView();
                 break;
             case R.id.menu_restore:
-                app.getCpuStateMonitor().removeOffsets();
-                app.saveOffsets();
+                this.app.getCpuStateMonitor().removeAllCpuIgnoredTimeInState();
                 updateView();
                 break;
         }
@@ -154,31 +175,31 @@ public class HomeActivity extends Activity {
      * Generate and update all UI elements
      */
     public void updateView() {
-        CpuStateMonitor monitor = app.getCpuStateMonitor();
+        CpuTimeInStateMonitor timeInStateMonitor = this.app.getCpuStateMonitor();
         uiStatesView.removeAllViews();
         List<String> extraStates = new ArrayList<>();
-        for (CpuState state : monitor.getStates()) {
-            if (state.duration > 0) {
-                generateStateRow(state, uiStatesView);
+        for (CpuTimeInState timeInState : timeInStateMonitor.getCurrentCpuTimeInState()) {
+            if (timeInState.duration > 0) {
+                generateStateRow(timeInState, uiStatesView);
                 continue;
             }
 
-            if (state.freq == 0) {
+            if (timeInState.frequency == 0) {
                 extraStates.add("Deep Sleep");
             } else {
-                extraStates.add(state.freq / 1000 + " MHz");
+                extraStates.add(timeInState.frequency / 1000 + " MHz");
             }
         }
 
-        if (monitor.getStates().size() == 0) {
+        if (timeInStateMonitor.getCurrentCpuTimeInState().size() == 0) {
             uiStatesWarning.setVisibility(View.VISIBLE);
             uiHeaderTotalStateTime.setVisibility(View.GONE);
             uiTotalStateTime.setVisibility(View.GONE);
             uiStatesView.setVisibility(View.GONE);
         }
 
-        long totalTime = monitor.getTotalStateTime() / 100;
-        uiTotalStateTime.setText(longToString(totalTime));
+        long totalTime = timeInStateMonitor.getCurrentCpuTotalStateTime() / 100;
+        uiTotalStateTime.setText(secondsToDuration(totalTime));
 
         if (extraStates.size() > 0) {
             int n = 0;
@@ -221,54 +242,54 @@ public class HomeActivity extends Activity {
     /**
      * @return A nicely formatted String representing tSec seconds
      */
-    private static String longToString(long tSec) {
+    private static String secondsToDuration(long tSec) {
         long h = (long) Math.floor((float) tSec / (60 * 60));
         long m = (long) Math.floor(((float) tSec - h * 60 * 60) / 60);
         long s = tSec % 60;
-        String sDur;
-        sDur = h + ":";
+        StringBuilder duration = new StringBuilder();
+        duration.append(h).append(":");
         if (m < 10)
-            sDur += "0";
-        sDur += m + ":";
+            duration.append("0");
+        duration.append(m).append(":");
         if (s < 10)
-            sDur += "0";
-        sDur += s;
+            duration.append("0");
+        duration.append(s);
 
-        return sDur;
+        return duration.toString();
     }
 
     /**
      * Generate a View that corresponds to a CPU freq state row as specified
      * by the state parameter
      */
-    private void generateStateRow(CpuState state, ViewGroup parent) {
+    private void generateStateRow(CpuTimeInState state, ViewGroup parent) {
         LayoutInflater inf = LayoutInflater.from(app);
         LinearLayout theRow = (LinearLayout) inf.inflate(
                 R.layout.state_row, parent, false);
 
-        CpuStateMonitor monitor = app.getCpuStateMonitor();
-        float per = (float) state.duration * 100 /
-                monitor.getTotalStateTime();
-        String statePercentage = (int) per + "%";
+        CpuTimeInStateMonitor monitor = app.getCpuStateMonitor();
+        float percentageValue = (float) state.duration * 100 /
+                monitor.getCurrentCpuTotalStateTime();
+        String statePercentage = (int) percentageValue + "%";
 
         String stateFrequency;
-        if (state.freq == 0) {
+        if (state.frequency == 0) {
             stateFrequency = "Deep Sleep";
         } else {
-            stateFrequency = state.freq / 1000 + " MHz";
+            stateFrequency = state.frequency / 1000 + " MHz";
         }
 
-        String stateDuration = longToString(state.duration / 100);
+        String stateDuration = secondsToDuration(state.duration / 100);
 
-        TextView freqText = theRow.findViewById(R.id.ui_freq_text);
-        TextView durText = theRow.findViewById(R.id.ui_duration_text);
-        TextView perText = theRow.findViewById(R.id.ui_percentage_text);
-        ProgressBar bar = theRow.findViewById(R.id.ui_bar);
+        TextView frequency = theRow.findViewById(R.id.ui_freq_text);
+        TextView duration = theRow.findViewById(R.id.ui_duration_text);
+        TextView percentage = theRow.findViewById(R.id.ui_percentage_text);
+        ProgressBar illustrator = theRow.findViewById(R.id.ui_bar);
 
-        freqText.setText(stateFrequency);
-        perText.setText(statePercentage);
-        durText.setText(stateDuration);
-        bar.setProgress((int) per);
+        frequency.setText(stateFrequency);
+        percentage.setText(statePercentage);
+        duration.setText(stateDuration);
+        illustrator.setProgress((int) percentageValue);
 
         parent.addView(theRow);
     }
@@ -289,11 +310,16 @@ public class HomeActivity extends Activity {
          */
         @Override
         protected Void doInBackground(Void... v) {
-            CpuStateMonitor monitor = activityRef.get().getApp().getCpuStateMonitor();
+            CpuTimeInStateMonitor timeInState
+                    = activityRef.get().getApp().getCpuStateMonitor();
             try {
-                monitor.updateStates();
-            } catch (CpuStateMonitorException e) {
-                activityRef.get().log("Problem getting CPU states");
+                timeInState.updateAllCpuTimeInState();
+            } catch (CpuStateMonitorException exception) {
+                activityRef.get().logError(String.format(
+                        Locale.getDefault(),
+                        "Problem getting CPU states: %s",
+                        exception.toString())
+                );
             }
 
             return null;
@@ -320,7 +346,7 @@ public class HomeActivity extends Activity {
     /**
      * Logging wrapper
      */
-    private void log(String s) {
-        Log.e(logTag, s);
+    private void logError(String s) {
+        Log.e(LOG_TAG, s);
     }
 }
